@@ -13,7 +13,6 @@ h1 { color: #6c5b7b; }
 
 st.title("To-Do List")
 
-# Inicjalizacja stanu
 if 'initialized' not in st.session_state:
     init_db()
     st.session_state.initialized = True
@@ -63,7 +62,6 @@ st.subheader("Twoje zadania")
 
 tasks = get_tasks()
 
-# SORT
 if st.session_state.sort_by == "date":
     tasks = sorted(tasks, key=lambda x: x[0])
 elif st.session_state.sort_by == "name":
@@ -95,7 +93,7 @@ else:
 st.markdown("---")
 
 # -----------------
-# BUTTONY SZYBKIE (POPRAWIONE!)
+# BUTTONY 
 # -----------------
 st.subheader("⚡ Szybkie akcje")
 col1, col2 = st.columns(2)
