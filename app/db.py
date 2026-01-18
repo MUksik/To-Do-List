@@ -1,102 +1,97 @@
-## nic nie ruszałem w tym pliku
-
-"""Simple SQLite-backed task storage.
-
-This module provides a tiny API for storing todo tasks in a local
-SQLite database. Public functions are typed and documented so they can be
-used easily by other modules and tests.
-
-Data model:
-- id: integer primary key
-- description: text
-- done: integer (0 or 1)
-"""
-
-import sqlite3
+import os
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Iterator, List, Tuple
 
-DB_NAME: str = "tasks.db"
+from sqlalchemy import Boolean, Integer, String, create_engine, select, DateTime, func, inspect
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
+from sqlalchemy.exc import OperationalError
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_DB_PATH = REPO_ROOT / "data" / "tasks.db"
+DB_NAME: str = os.getenv("TDL_DB_PATH", str(DEFAULT_DB_PATH))
+
+
+def _ensure_parent_dir(db_path: str) -> None:
+    Path(db_path).expanduser().resolve().parent.mkdir(parents=True, exist_ok=True)
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    done: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[object] = mapped_column(DateTime, nullable=False, server_default=func.datetime("now", "localtime"))
+
+    def __repr__(self) -> str:
+        return f"Task(id={self.id}, description={self.description!r}, done={self.done})"
+
+
+def _sqlite_url_from_path(db_path: str) -> str:
+    p = Path(db_path).expanduser().resolve()
+    return f"sqlite:///{p.as_posix()}"
+
+
+def get_engine() -> Engine:
+    _ensure_parent_dir(DB_NAME)
+    url = _sqlite_url_from_path(DB_NAME)
+    return create_engine(url, future=True, echo=False, connect_args={"check_same_thread": False}, pool_pre_ping=True)
+
+
+_engine: Engine = get_engine()
+
+SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False, future=True)
 
 
 @contextmanager
-def get_db_connection() -> Iterator[sqlite3.Connection]:
-    """Context manager that yields a SQLite connection and closes it.
-
-    Yields:
-        sqlite3.Connection: open SQLite connection to :data:`DB_NAME`.
-    """
-    conn = sqlite3.connect(DB_NAME)
+def get_session() -> Iterator[Session]:
+    session = SessionLocal()
     try:
-        yield conn
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
     finally:
-        conn.close()
+        session.close()
 
 
 def init_db() -> None:
-    """Create the `tasks` table if it does not already exist.
-
-    This is safe to call multiple times.
-    """
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS tasks (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                description TEXT NOT NULL,
-                done INTEGER DEFAULT 0
-            )
-        """)
-        conn.commit()
+    Base.metadata.create_all(bind=_engine)
 
 
 def add_task(desc: str) -> None:
-    """Insert a new task with the given description.
-
-    Args:
-        desc: Task description text. Leading/trailing whitespace should be
-            stripped by the caller if desired.
-    """
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("INSERT INTO tasks(description) VALUES (?)", (desc,))
-        conn.commit()
+    desc = (desc or "").strip()
+    if not desc:
+        return
+    with get_session() as session:
+        session.add(Task(description=desc, done=False))
 
 
-def get_tasks() -> List[Tuple[int, str, int]]:
-    """Return all tasks as a list of tuples.
-
-    Returns:
-        A list of `(id, description, done)` tuples where `done` is 0 or 1.
-    """
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT id, description, done FROM tasks")
-        return cur.fetchall()
+def get_tasks() -> List[Tuple[int, str, int, str]]:
+    with get_session() as session:
+        stmt = select(Task).order_by(Task.id.asc())
+        tasks = session.scalars(stmt).all()
+        return [(t.id, t.description, 1 if t.done else 0, t.created_at.strftime("%Y-%m-%d %H:%M")) for t in tasks]
 
 
 def delete_task(task_id: int) -> None:
-    """Delete task with the given id.
-
-    Args:
-        task_id: Primary key of the task to remove.
-    """
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
-        conn.commit()
+    with get_session() as session:
+        task = session.get(Task, task_id)
+        if task is None:
+            return
+        session.delete(task)
 
 
-def toggle_done(task_id: int, current: int) -> None:
-    """Flip the `done` state for a task.
-
-    Args:
-        task_id: Primary key of the task to update.
-        current: Current value of `done` (0 or 1). The function will set the
-            column to the opposite value.
-    """
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        new = 0 if current else 1
-        cur.execute("UPDATE tasks SET done = ? WHERE id = ?", (new, task_id))
-        conn.commit()
+def toggle_done(task_id: int, new_value: bool) -> None:
+    with get_session() as session:
+        task = session.get(Task, task_id)
+        if task is None:
+            return
+        task.done = bool(new_value)

@@ -32,26 +32,27 @@ tasks = get_tasks()
 
 st.subheader("Lista zadań")
 
-## TODO: dorobić sortowanie
-sort_key = {"date": lambda x: x[0], "name": lambda x: x[1].lower(), "status": lambda x: x[2]}[ss.sort_by]
+options = ["date", "name", "status"]
+st.selectbox("sortuj wg:", options, key="sort_by")
+sort_key = {"date": lambda x: x[3], "name": lambda x: x[1].lower(), "status": lambda x: x[2]}[ss.sort_by]
 
 tasks = sorted(tasks, key=sort_key, reverse=(ss.sort_by == "status"))
 
 if not tasks:
     st.info("Aktualnie nie masz żadnych zadań!")
 else:
-    for task_id, desc, done in tasks:
+    for task_id, desc, done, created_at in tasks:
 
         c1, c2, c3, c4 = st.columns([1, 3, 19, 1])
 
         with c1:
             new_val = st.checkbox("", value=bool(done), key=f"chk_{task_id}", label_visibility="collapsed")
             if new_val != bool(done):
-                toggle_done(task_id, done)
+                toggle_done(task_id, new_val)
                 st.rerun()
         with c2:
             st.caption("data utworzenia:")
-            st.caption("—") ## TODO: dorobić date
+            st.caption(created_at)
         with c3:
             st.subheader(desc)
         with c4:
