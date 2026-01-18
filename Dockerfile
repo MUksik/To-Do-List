@@ -9,4 +9,12 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["python", "-m", "streamlit", "run", "app/main.py", "--server.port=3000", "--server.address=0.0.0.0"]
+CMD [
+    "python",
+    "-m",
+    "streamlit",
+    "run",
+    "app/main.py",
+    "--server.port=3000",
+    "--server.address=0.0.0.0"
+]

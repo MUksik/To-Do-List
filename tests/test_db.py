@@ -5,6 +5,7 @@ sys.path.insert(0, os.getcwd())
 
 import app.db as db
 
+
 def test_db_crud(tmp_path):
     db.DB_NAME = str(tmp_path / "test_tasks.db")
     db.reset_engine()
@@ -29,6 +30,7 @@ def test_db_crud(tmp_path):
     db.delete_task(task_id)
     tasks = db.get_tasks()
     assert tasks == []
+
 
 def test_clear_tasks(tmp_path):
     db.DB_NAME = str(tmp_path / "test_tasks.db")
