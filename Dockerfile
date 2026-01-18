@@ -1,18 +1,12 @@
-# Używamy oficjalnego Pythona 3.11
-#FROM python:3.11-slim
+FROM python:3.11-slim
 
-# Ustawiamy folder roboczy w kontenerze
-#WORKDIR /app
+WORKDIR /app
 
-# Kopiujemy pliki projektu
-#COPY . /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Instalujemy zależności
-#RUN pip install --no-cache-dir --upgrade pip
-#RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
 
-# Otwieramy port 8501 (domyślny dla Streamlit)
-#EXPOSE 8501
+EXPOSE 3000
 
-# Uruchamiamy Streamlit
-#CMD ["streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["python", "-m", "streamlit", "run", "app/main.py", "--server.port=3000", "--server.address=0.0.0.0"]

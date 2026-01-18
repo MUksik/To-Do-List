@@ -1,3 +1,5 @@
+## nic nie ruszałem w tym pliku
+
 """Simple SQLite-backed task storage.
 
 This module provides a tiny API for storing todo tasks in a local

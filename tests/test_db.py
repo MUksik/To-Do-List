@@ -7,7 +7,7 @@ import sys
 
 sys.path.insert(0, os.getcwd())
 
-import db
+import app.db as db
 
 def test_db_crud(tmp_path):
     db.DB_NAME = str(tmp_path / "test_tasks.db")

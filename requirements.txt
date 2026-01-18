@@ -1,2 +1,3 @@
 streamlit
 pytest
+SQLAlchemy>=2.0
