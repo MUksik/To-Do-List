@@ -5,7 +5,9 @@ import os
 
 
 def test_smoke_streamlit_starts(tmp_path):
-    ###### zmiany wykonane przy pomocy ChataGPT ######
+    """Start Streamlit app process and verify it stays alive for a moment."""
+
+    ####### changes made with help of ChatGPT #######
     env = os.environ.copy()
     env["TDL_DB_PATH"] = str(tmp_path / "smoke.db")
 

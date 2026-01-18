@@ -7,6 +7,7 @@ import app.db as db
 
 
 def test_db_crud(tmp_path):
+    """Test basic CRUD flow: create, read, update, delete."""
     db.DB_NAME = str(tmp_path / "test_tasks.db")
     db.reset_engine()
 
@@ -33,6 +34,7 @@ def test_db_crud(tmp_path):
 
 
 def test_clear_tasks(tmp_path):
+    """Test clearing all tasks from the database."""
     db.DB_NAME = str(tmp_path / "test_tasks.db")
     db.reset_engine()
 
