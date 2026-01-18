@@ -1,29 +1,18 @@
-#smoke test sprawdzający, czy aplikacja Streamlit
-#potrafi się uruchomić bez natychmiastowego błędu
-
 import subprocess
 import sys
 import time
 import os
 
 def test_smoke_streamlit_starts(tmp_path):
-    """Smoke test: start Streamlit briefly to ensure the app can start.
-
-    The process is started and allowed to run for a short period. The test
-    asserts the process did not immediately exit with an error and then
-    terminates it.
-    """
-    cwd = os.getcwd()
+    ##################################################### zmiany wykonane przy pomocy ChataGPT #####################################################
+    env = os.environ.copy()
+    env["TDL_DB_PATH"] = str(tmp_path / "smoke.db")
 
     port = "8502"
     proc = subprocess.Popen(
-        [sys.executable, "-m", "streamlit", "run", "main.py", "--server.headless", "true", "--server.port", port],
-        cwd=cwd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-
+        [sys.executable, "-m", "streamlit", "run", "app/main.py", "--server.headless=true", f"--server.port={port}", "--server.address=127.0.0.1"],
+        cwd=os.getcwd(), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    ################################################################################################################################################
     try:
         time.sleep(3)
         assert proc.poll() is None

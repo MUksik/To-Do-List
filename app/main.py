@@ -1,6 +1,6 @@
 import base64
 import streamlit as st
-from db import init_db, add_task, get_tasks, delete_task, toggle_done
+from db import init_db, add_task, get_tasks, delete_task, toggle_done, clear_tasks
 
 st.set_page_config(page_title="To Do List", page_icon="📝", layout="wide")
 
@@ -61,6 +61,5 @@ else:
                 st.rerun()
 
     if st.button("WYCZYŚĆ WSZYSTKIE", use_container_width=True):
-        for task_id, *_ in get_tasks():
-            delete_task(task_id)
+        clear_tasks()
         st.rerun()

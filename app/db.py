@@ -3,10 +3,9 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator, List, Tuple
 
-from sqlalchemy import Boolean, Integer, String, create_engine, select, DateTime, func, inspect
+from sqlalchemy import Boolean, Integer, String, create_engine, select, DateTime, func
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
-from sqlalchemy.exc import OperationalError
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB_PATH = REPO_ROOT / "data" / "tasks.db"
@@ -44,13 +43,29 @@ def get_engine() -> Engine:
     return create_engine(url, future=True, echo=False, connect_args={"check_same_thread": False}, pool_pre_ping=True)
 
 
-_engine: Engine = get_engine()
+############################## zmiany wykonane przy pomocy ChataGPT ##############################
+_engine: Engine | None = None
+SessionLocal: sessionmaker[Session] | None = None
 
-SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False, future=True)
+
+def reset_engine() -> None:
+    global _engine, SessionLocal
+    _engine = None
+    SessionLocal = None
+
+
+def _ensure_engine() -> None:
+    global _engine, SessionLocal
+    if _engine is None or SessionLocal is None:
+        _engine = get_engine()
+        SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False, future=True)
+##################################################################################################
 
 
 @contextmanager
 def get_session() -> Iterator[Session]:
+    _ensure_engine()
+    assert SessionLocal is not None
     session = SessionLocal()
     try:
         yield session
@@ -63,6 +78,8 @@ def get_session() -> Iterator[Session]:
 
 
 def init_db() -> None:
+    _ensure_engine()
+    assert _engine is not None
     Base.metadata.create_all(bind=_engine)
 
 
@@ -95,3 +112,7 @@ def toggle_done(task_id: int, new_value: bool) -> None:
         if task is None:
             return
         task.done = bool(new_value)
+
+def clear_tasks() -> None:
+    with get_session() as session:
+        session.query(Task).delete()
