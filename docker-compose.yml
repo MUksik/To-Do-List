@@ -2,12 +2,17 @@ version: "3.9"
 
 services:
   tdl:
-    build: .
     image: tdl
+    build: .
+
     container_name: tdl
+    working_dir: /app
 
     ports:
       - "127.0.0.1:3000:3000"
 
     volumes:
       - ./data:/app/data
+
+    environment:
+      PYTHONPATH: /app
