@@ -19,7 +19,7 @@ The app can be run using Docker.
 
 #### The application uses a single database table *tasks*.
 
-```bash
+```js
 erDiagram
     TASKS {
         int id
