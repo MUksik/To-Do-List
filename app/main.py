@@ -1,5 +1,6 @@
 import base64
 import streamlit as st
+from app.i18n import DEFAULT_LANG, LANG_OPTIONS, t
 
 from app.db import (
     add_task,
@@ -10,31 +11,8 @@ from app.db import (
     toggle_done,
 )
 
-ADD_TASK_HEADER = "Dodaj nowe zadanie"
-TASK_INPUT_LABEL = "wpisz treść:"
-ADD_BUTTON_LABEL = "DODAJ"
-
-TASK_LIST_HEADER = "Lista zadań"
-
-FILTER_LABEL = "wyświetl:"
-SORT_LABEL = "sortuj wg:"
-
-EMPTY_TASKS_INFO = "Aktualnie nie masz żadnych zadań!"
-CREATED_AT_LABEL = "data utworzenia:"
-
-CLEAR_ALL_BUTTON_LABEL = "WYCZYŚĆ WSZYSTKIE"
-DELETE_ICON_LABEL = "🗑️"
-
-FILTER_ALL = "wszystkie"
-FILTER_DONE = "ukończone"
-FILTER_NOT_DONE = "nieukończone"
-FILTER_OPTIONS = [FILTER_ALL, FILTER_DONE, FILTER_NOT_DONE]
-
-SORT_CREATED_ASC = "data utworzenia (rosnąco)"
-SORT_CREATED_DESC = "data utworzenia (malejąco)"
-SORT_DESC_ASC = "treść zadania (A-Z)"
-SORT_DESC_DESC = "treść zadania (Z-A)"
-SORT_OPTIONS = [SORT_CREATED_ASC, SORT_CREATED_DESC, SORT_DESC_ASC, SORT_DESC_DESC]
+FILTER_OPTIONS = ("all", "done", "not_done")
+SORT_OPTIONS = ("created_asc", "created_desc", "desc_asc", "desc_desc")
 
 
 st.set_page_config(
@@ -75,14 +53,32 @@ if "initialized" not in ss:
     init_db()
     ss.initialized = True
     ss.task_input = ""
-    ss.sort_by = SORT_CREATED_ASC
-    ss.filter_by = FILTER_ALL
+    ss.sort_by = "created_asc"
+    ss.filter_by = "all"
 
-st.subheader(ADD_TASK_HEADER)
+if "lang" not in ss:
+    ss.lang = DEFAULT_LANG
+
+lang = ss.lang
+
+header_column, language_column = st.columns([7, 2])
+
+with header_column:
+    st.subheader(t(lang, "add_task_header"))
+
+with language_column:
+    st.selectbox(
+        t(lang, "choose_language"),
+        LANG_OPTIONS,
+        key="lang",
+    )
 
 with st.form("add_task_form", clear_on_submit=True):
-    st.text_input(TASK_INPUT_LABEL, key="task_input")
-    submitted = st.form_submit_button(ADD_BUTTON_LABEL, use_container_width=True)
+    st.text_input(t(lang, "task_input_label"), key="task_input")
+    submitted = st.form_submit_button(
+        t(lang, "add_button_label"),
+        use_container_width=True,
+    )
 
 if submitted:
     desc = ss.task_input.strip()
@@ -92,34 +88,44 @@ if submitted:
 
 tasks = get_tasks()
 
-st.subheader(TASK_LIST_HEADER)
+st.subheader(t(lang, "task_list_header"))
 
 filter_column, sort_column = st.columns([2, 3])
 
 with filter_column:
-    st.selectbox(FILTER_LABEL, FILTER_OPTIONS, key="filter_by")
+    st.selectbox(
+        t(lang, "filter_label"),
+        FILTER_OPTIONS,
+        key="filter_by",
+        format_func=lambda x: t(lang, f"filter_{x}"),
+    )
 
 with sort_column:
-    st.selectbox(SORT_LABEL, SORT_OPTIONS, key="sort_by")
+    st.selectbox(
+        t(lang, "sort_label"),
+        SORT_OPTIONS,
+        key="sort_by",
+        format_func=lambda x: t(lang, f"sort_{x}"),
+    )
 
 sort_config = {
-    SORT_CREATED_ASC: (lambda x: x[3], False),
-    SORT_CREATED_DESC: (lambda x: x[3], True),
-    SORT_DESC_ASC: (lambda x: x[1].lower(), False),
-    SORT_DESC_DESC: (lambda x: x[1].lower(), True),
+    "created_asc": (lambda task: task[3], False),
+    "created_desc": (lambda task: task[3], True),
+    "desc_asc": (lambda task: task[1].lower(), False),
+    "desc_desc": (lambda task: task[1].lower(), True),
 }
 
 key_func, reverse = sort_config[ss.sort_by]
 
-if ss.filter_by == FILTER_DONE:
+if ss.filter_by == "done":
     tasks = [t for t in tasks if t[2] == 1]
-elif ss.filter_by == FILTER_NOT_DONE:
+elif ss.filter_by == "not_done":
     tasks = [t for t in tasks if t[2] == 0]
 
 tasks = sorted(tasks, key=key_func, reverse=reverse)
 
 if not tasks:
-    st.info(EMPTY_TASKS_INFO)
+    st.info(t(lang, "empty_tasks_info"))
 else:
     for task_id, desc, done, created_at in tasks:
         status_cell, date_cell, content_cell, delete_cell = st.columns([1, 3, 19, 1])
@@ -136,17 +142,17 @@ else:
                 st.rerun()
 
         with date_cell:
-            st.caption(CREATED_AT_LABEL)
+            st.caption(t(lang, "created_at_label"))
             st.caption(created_at)
 
         with content_cell:
             st.subheader(desc)
 
         with delete_cell:
-            if st.button(DELETE_ICON_LABEL, key=f"del_{task_id}"):
+            if st.button(t(lang, "delete_icon_label"), key=f"del_{task_id}"):
                 delete_task(task_id)
                 st.rerun()
 
-    if st.button(CLEAR_ALL_BUTTON_LABEL, use_container_width=True):
+    if st.button(t(lang, "clear_all_button_label"), use_container_width=True):
         clear_tasks()
         st.rerun()
