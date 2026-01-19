@@ -10,6 +10,33 @@ from app.db import (
     toggle_done,
 )
 
+ADD_TASK_HEADER = "Dodaj nowe zadanie"
+TASK_INPUT_LABEL = "wpisz treść:"
+ADD_BUTTON_LABEL = "DODAJ"
+
+TASK_LIST_HEADER = "Lista zadań"
+
+FILTER_LABEL = "wyświetl:"
+SORT_LABEL = "sortuj wg:"
+
+EMPTY_TASKS_INFO = "Aktualnie nie masz żadnych zadań!"
+CREATED_AT_LABEL = "data utworzenia:"
+
+CLEAR_ALL_BUTTON_LABEL = "WYCZYŚĆ WSZYSTKIE"
+DELETE_ICON_LABEL = "🗑️"
+
+FILTER_ALL = "wszystkie"
+FILTER_DONE = "ukończone"
+FILTER_NOT_DONE = "nieukończone"
+FILTER_OPTIONS = [FILTER_ALL, FILTER_DONE, FILTER_NOT_DONE]
+
+SORT_CREATED_ASC = "data utworzenia (rosnąco)"
+SORT_CREATED_DESC = "data utworzenia (malejąco)"
+SORT_DESC_ASC = "treść zadania (A-Z)"
+SORT_DESC_DESC = "treść zadania (Z-A)"
+SORT_OPTIONS = [SORT_CREATED_ASC, SORT_CREATED_DESC, SORT_DESC_ASC, SORT_DESC_DESC]
+
+
 st.set_page_config(
     page_title="To Do List",
     page_icon="📝",
@@ -48,13 +75,14 @@ if "initialized" not in ss:
     init_db()
     ss.initialized = True
     ss.task_input = ""
-    ss.sort_by = "date"
+    ss.sort_by = SORT_CREATED_ASC
+    ss.filter_by = FILTER_ALL
 
-st.subheader("Dodaj nowe zadanie")
+st.subheader(ADD_TASK_HEADER)
 
 with st.form("add_task_form", clear_on_submit=True):
-    st.text_input("wpisz treść:", key="task_input")
-    submitted = st.form_submit_button("DODAJ", use_container_width=True)
+    st.text_input(TASK_INPUT_LABEL, key="task_input")
+    submitted = st.form_submit_button(ADD_BUTTON_LABEL, use_container_width=True)
 
 if submitted:
     desc = ss.task_input.strip()
@@ -64,70 +92,61 @@ if submitted:
 
 tasks = get_tasks()
 
-st.subheader("Lista zadań")
+st.subheader(TASK_LIST_HEADER)
 
-sort_options = [
-    "data utworzenia (rosnąco)",
-    "data utworzenia (malejąco)",
-    "treść zadania (A-Z)",
-    "treść zadania (Z-A)",
-]
-filter_options = ["wszystkie", "ukończone", "nieukończone"]
+filter_column, sort_column = st.columns([2, 3])
 
-col1, col2 = st.columns([2, 3])
+with filter_column:
+    st.selectbox(FILTER_LABEL, FILTER_OPTIONS, key="filter_by")
 
-with col1:
-    st.selectbox("wyświetl:", filter_options, key="filter_by")
-
-with col2:
-    st.selectbox("sortuj wg:", sort_options, key="sort_by")
+with sort_column:
+    st.selectbox(SORT_LABEL, SORT_OPTIONS, key="sort_by")
 
 sort_config = {
-    "data utworzenia (rosnąco)": (lambda x: x[3], False),
-    "data utworzenia (malejąco)": (lambda x: x[3], True),
-    "treść zadania (A-Z)": (lambda x: x[1].lower(), False),
-    "treść zadania (Z-A)": (lambda x: x[1].lower(), True),
+    SORT_CREATED_ASC: (lambda x: x[3], False),
+    SORT_CREATED_DESC: (lambda x: x[3], True),
+    SORT_DESC_ASC: (lambda x: x[1].lower(), False),
+    SORT_DESC_DESC: (lambda x: x[1].lower(), True),
 }
 
 key_func, reverse = sort_config[ss.sort_by]
 
-if ss.filter_by == "ukończone":
+if ss.filter_by == FILTER_DONE:
     tasks = [t for t in tasks if t[2] == 1]
-elif ss.filter_by == "nieukończone":
+elif ss.filter_by == FILTER_NOT_DONE:
     tasks = [t for t in tasks if t[2] == 0]
 
 tasks = sorted(tasks, key=key_func, reverse=reverse)
 
 if not tasks:
-    st.info("Aktualnie nie masz żadnych zadań!")
+    st.info(EMPTY_TASKS_INFO)
 else:
     for task_id, desc, done, created_at in tasks:
-        c1, c2, c3, c4 = st.columns([1, 3, 19, 1])
+        status_cell, date_cell, content_cell, delete_cell = st.columns([1, 3, 19, 1])
 
-        with c1:
+        with status_cell:
             new_val = st.checkbox(
                 "",
                 value=bool(done),
                 key=f"chk_{task_id}",
                 label_visibility="collapsed",
             )
-
             if new_val != bool(done):
                 toggle_done(task_id, new_val)
                 st.rerun()
 
-        with c2:
-            st.caption("data utworzenia:")
+        with date_cell:
+            st.caption(CREATED_AT_LABEL)
             st.caption(created_at)
 
-        with c3:
+        with content_cell:
             st.subheader(desc)
 
-        with c4:
-            if st.button("🗑️", key=f"del_{task_id}"):
+        with delete_cell:
+            if st.button(DELETE_ICON_LABEL, key=f"del_{task_id}"):
                 delete_task(task_id)
                 st.rerun()
 
-    if st.button("WYCZYŚĆ WSZYSTKIE", use_container_width=True):
+    if st.button(CLEAR_ALL_BUTTON_LABEL, use_container_width=True):
         clear_tasks()
         st.rerun()
