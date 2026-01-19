@@ -45,6 +45,8 @@ TRANSLATIONS = {
 }
 
 
-def t(lang: str, key: str) -> str:
+def t(lang: str | None, key: str) -> str:
+    """Returns translation for given key and language.
+    Falls back to English if language or key is missing."""
     lang = lang if lang in LANG_OPTIONS else DEFAULT_LANG
     return TRANSLATIONS.get(lang, {}).get(key) or key

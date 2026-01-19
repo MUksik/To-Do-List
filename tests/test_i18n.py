@@ -1,6 +1,4 @@
 import app.i18n as i18n
-import os
-import sys
 
 
 def test_t_returns_polish_translation():

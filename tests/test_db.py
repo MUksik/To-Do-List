@@ -1,6 +1,4 @@
 import app.db as db
-import os
-import sys
 
 
 def _setup_db(tmp_path, filename="test_tasks.db"):

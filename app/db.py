@@ -142,7 +142,7 @@ def init_db() -> None:
     Base.metadata.create_all(bind=_engine)
 
 
-def add_task(desc: str) -> None:
+def add_task(desc: str | None) -> None:
     """Add a new task to the database."""
     desc = (desc or "").strip()
     if not desc:
