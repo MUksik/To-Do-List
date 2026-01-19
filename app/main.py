@@ -1,13 +1,13 @@
 import base64
 import streamlit as st
 
-from db import (
-    init_db,
+from app.db import (
     add_task,
-    get_tasks,
-    delete_task,
-    toggle_done,
     clear_tasks,
+    delete_task,
+    get_tasks,
+    init_db,
+    toggle_done,
 )
 
 st.set_page_config(
@@ -66,26 +66,42 @@ tasks = get_tasks()
 
 st.subheader("Lista zadań")
 
-options = ["date", "name", "status"]
-st.selectbox("sortuj wg:", options, key="sort_by")
+sort_options = [
+    "data utworzenia (rosnąco)",
+    "data utworzenia (malejąco)",
+    "treść zadania (A-Z)",
+    "treść zadania (Z-A)",
+]
+filter_options = ["wszystkie", "ukończone", "nieukończone"]
 
-sort_key = {
-    "date": lambda x: x[3],
-    "name": lambda x: x[1].lower(),
-    "status": lambda x: x[2],
-}[ss.sort_by]
+col1, col2 = st.columns([2, 3])
 
-tasks = sorted(
-    tasks,
-    key=sort_key,
-    reverse=(ss.sort_by == "status"),
-)
+with col1:
+    st.selectbox("wyświetl:", filter_options, key="filter_by")
+
+with col2:
+    st.selectbox("sortuj wg:", sort_options, key="sort_by")
+
+sort_config = {
+    "data utworzenia (rosnąco)": (lambda x: x[3], False),
+    "data utworzenia (malejąco)": (lambda x: x[3], True),
+    "treść zadania (A-Z)": (lambda x: x[1].lower(), False),
+    "treść zadania (Z-A)": (lambda x: x[1].lower(), True),
+}
+
+key_func, reverse = sort_config[ss.sort_by]
+
+if ss.filter_by == "ukończone":
+    tasks = [t for t in tasks if t[2] == 1]
+elif ss.filter_by == "nieukończone":
+    tasks = [t for t in tasks if t[2] == 0]
+
+tasks = sorted(tasks, key=key_func, reverse=reverse)
 
 if not tasks:
     st.info("Aktualnie nie masz żadnych zadań!")
 else:
     for task_id, desc, done, created_at in tasks:
-
         c1, c2, c3, c4 = st.columns([1, 3, 19, 1])
 
         with c1:
