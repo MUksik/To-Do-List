@@ -52,15 +52,15 @@ if "initialized" not in ss:
 
 st.subheader("Dodaj nowe zadanie")
 
-new_task = st.text_input(
-    "wpisz treść:",
-    value=ss.task_input,
-)
+with st.form("add_task_form", clear_on_submit=True):
+    st.text_input("wpisz treść:", key="task_input")
+    submitted = st.form_submit_button("DODAJ", use_container_width=True)
 
-if st.button("DODAJ", use_container_width=True) and new_task.strip():
-    add_task(new_task.strip())
-    ss.task_input = ""
-    st.rerun()
+if submitted:
+    desc = ss.task_input.strip()
+    if desc:
+        add_task(desc)
+        st.rerun()
 
 tasks = get_tasks()
 
